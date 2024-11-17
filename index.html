@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            display: none;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            padding: 10px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        .nitra-box { background: #e6f0ff; }
+        .kosice-box { background: #e6ffe6; }
+        .draw-box { background: #fff3e6; }
+        .percentage {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .probable-score {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .score-display {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        .score-probability {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Nitra proti Košice - Simulátor</h1>
+        
+        <div class="input-group">
+            <label for="period">Tretina:</label>
+            <select id="period">
+                <option value="1">1. tretina</option>
+                <option value="2">2. tretina</option>
+                <option value="3">3. tretina</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="nitraScore">Skóre Nitra:</label>
+            <input type="number" id="nitraScore" min="0" value="0">
+        </div>
+
+        <div class="input-group">
+            <label for="kosiceScore">Skóre Košice:</label>
+            <input type="number" id="kosiceScore" min="0" value="0">
+        </div>
+
+        <div class="input-group">
+            <label for="simCount">Počet simulácií:</label>
+            <input type="number" id="simCount" min="1" max="1000" value="100">
+        </div>
+
+        <button onclick="runSimulations()">Spustiť simulácie</button>
+
+        <div id="results">
+            <h2>Výsledky simulácie</h2>
+            <div class="stat-grid">
+                <div class="stat-box nitra-box">
+                    <div class="percentage" id="nitraPercentage">0%</div>
+                    <div>Pravdepodobnosť Výhry Nitry</div>
+                </div>
+                <div class="stat-box kosice-box">
+                    <div class="percentage" id="kosicePercentage">0%</div>
+                    <div>Pravdepodobnosť Výhry Košíc</div>
+                </div>
+                <div class="stat-box draw-box">
+                    <div class="percentage" id="drawPercentage">0%</div>
+                    <div>Pravdepodobnosť Remízy</div>
+                </div>
+            </div>
+            <div class="probable-score">
+                <h3>Najpravdepodobnejší konečný výsledok</h3>
+                <div class="score-display" id="probableScore">Nitra 0 - 0 Košice</div>
+                <div class="score-probability" id="scoreProbability">(0% pravdepodobnosť)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function runSimulations() {
+            const period = parseInt(document.getElementById('period').value);
+            const nitraScore = parseInt(document.getElementById('nitraScore').value);
+            const kosiceScore = parseInt(document.getElementById('kosiceScore').value);
+            const simCount = parseInt(document.getElementById('simCount').value);
+
+            let nitraWins = 0;
+            let kosiceWins = 0;
+            let draws = 0;
+            
+            // Object to track score frequencies
+            let scoreDistribution = {};
+
+            // Run simulations
+            for (let i = 0; i < simCount; i++) {
+                let finalNitraScore = nitraScore;
+                let finalKosiceScore = kosiceScore;
+
+                // Simulate remaining periods
+                const periodsLeft = 4 - period;
+                for (let p = 0; p < periodsLeft; p++) {
+                    finalNitraScore += Math.floor(Math.random() * 4);
+                    finalKosiceScore += Math.floor(Math.random() * 4);
+                }
+
+                // Track score distribution
+                const scoreKey = `${finalNitraScore}-${finalKosiceScore}`;
+                scoreDistribution[scoreKey] = (scoreDistribution[scoreKey] || 0) + 1;
+
+                if (finalNitraScore > finalKosiceScore) nitraWins++;
+                else if (finalKosiceScore > finalNitraScore) kosiceWins++;
+                else draws++;
+            }
+
+            // Find most probable score
+            let mostProbableScore = '';
+            let maxOccurrences = 0;
+            for (let score in scoreDistribution) {
+                if (scoreDistribution[score] > maxOccurrences) {
+                    maxOccurrences = scoreDistribution[score];
+                    mostProbableScore = score;
+                }
+            }
+
+            const [probNitra, probKosice] = mostProbableScore.split('-');
+            const probability = (maxOccurrences / simCount * 100).toFixed(1);
+
+            // Update results
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('nitraPercentage').textContent = 
+                `${(nitraWins / simCount * 100).toFixed(1)}%`;
+            document.getElementById('kosicePercentage').textContent = 
+                `${(kosiceWins / simCount * 100).toFixed(1)}%`;
+            document.getElementById('drawPercentage').textContent = 
+                `${(draws / simCount * 100).toFixed(1)}%`;
+            
+            // Update probable score
+            document.getElementById('probableScore').textContent = 
+                `Nitra ${probNitra} - ${probKosice} Košice`;
+            document.getElementById('scoreProbability').textContent = 
+                `(${probability}% pravdepodobnosť)`;
+        }
+    </script>
+	<script type="module">
+	  // Import the functions you need from the SDKs you need
+	  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+	  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js";
+	  // TODO: Add SDKs for Firebase products that you want to use
+	  // https://firebase.google.com/docs/web/setup#available-libraries
+
+	  // Your web app's Firebase configuration
+	  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+	  const firebaseConfig = {
+		apiKey: "AIzaSyDkSxDPCx6pIBSYZfA1S4nEhKpKPrqvREs",
+		authDomain: "hokejnitkos.firebaseapp.com",
+		projectId: "hokejnitkos",
+		storageBucket: "hokejnitkos.firebasestorage.app",
+		messagingSenderId: "275883261210",
+		appId: "1:275883261210:web:d5146839b0f0c19c0880a3",
+		measurementId: "G-E0EKL5X93N"
+	  };
+
+	  // Initialize Firebase
+	  const app = initializeApp(firebaseConfig);
+	  const analytics = getAnalytics(app);
+	</script>
+</body>
+</html>
